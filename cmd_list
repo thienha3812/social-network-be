@@ -1,1 +1,1 @@
-genna model-named -c postgresql://postgres:admin123@database-1.crbkggicegau.us-east-1.rds.amazonaws.com:5432/network-social -o models.go
+genna model-named -c 'postgresql://postgres:postgres@localhost:5432/social_network?sslmode=disable' -o models.go
