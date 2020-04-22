@@ -5,6 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.53.0 // indirect
 	github.com/alexflint/go-arg v1.2.0 // indirect
+	github.com/coreos/etcd v3.3.10+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dizzyfool/genna v0.0.0-20200326233101-1b8e624c7ae8 // indirect

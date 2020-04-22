@@ -9,8 +9,6 @@ type Database struct {
 	DB *gorm.DB
 }
 
-
-
 func (*Database) init() *gorm.DB {
 	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=test sslmode=disable password=postgres")
 	if err != nil {

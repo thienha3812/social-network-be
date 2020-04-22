@@ -8,16 +8,15 @@ import (
 func CheckToken(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if c.Path() != "/api/account/signin" {
-			token, _ := c.Cookie("token")
-			t,err :=jwt.Parse(token.Value, func(token *jwt.Token) (i interface{}, err error) {
-				return []byte("secret"),nil
-			})
+			token, err := c.Cookie("token")
 			if err != nil {
-				return c.String(500,"Token invalid")
+				return c.String(500, "Token not exist")
 			}
-
+			t, _ := jwt.Parse(token.Value, func(token *jwt.Token) (i interface{}, err error) {
+				return []byte("secret"), nil
+			})
 			if !t.Valid {
-				return c.String(500,"Token expired")
+				return c.String(500, "Token invalid")
 			}
 		}
 		return next(c)

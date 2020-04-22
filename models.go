@@ -1,11 +1,6 @@
 package main
 
-
 import "github.com/jinzhu/gorm"
-
-
-
-
 
 type Account struct {
 	gorm.Model
@@ -21,8 +16,6 @@ type Friends struct {
 	User_1 uint `gorm:"not null"`
 	User_2 uint `gorm:"not null"`
 	Status uint `gorm:"default:1"`
-
-
 }
 type Profile struct {
 	gorm.Model
@@ -48,6 +41,13 @@ type Comment struct {
 	AccountID uint   `gorm:"not null"`
 }
 
+type AccountOnline struct {
+	gorm.Model
+	AccountID uint `gorm:"not null"`
+	IP        string
+	SocketID  string `gorm:"not null"`
+}
+
 func (*Account) TableName() string {
 	return "Account"
 }
@@ -63,4 +63,7 @@ func (*Comment) TableName() string {
 }
 func (*Post) TableName() string {
 	return "Post"
+}
+func (*AccountOnline) TableName() string {
+	return "AccountOnline"
 }
