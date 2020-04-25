@@ -54,7 +54,7 @@ func (*AccountController) Signin(c echo.Context) error {
 	response["message"] = "Đăng nhập thành công"
 	response["user_infor"] = echo.Map{
 		"avatar":    profile.Avatar,
-		"full_name": profile.Full_Name,
+		"full_name": profile.FullName,
 		"username":  account.Username,
 		"id":        account.ID,
 	}

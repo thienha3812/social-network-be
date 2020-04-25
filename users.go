@@ -63,11 +63,10 @@ func (*UserController) LoadProfile(c echo.Context) error {
 	account_id, err := DecodeToken(c, "id")
 	db.Where("user_1 = ? ", int(request["id"].(float64))).Where("user_2 =  ? ", account_id).Find(&friends)
 	db.Where("user_1 = ? ", account_id).Where("user_2 =  ? ", int(request["id"].(float64))).Find(&friends)
-	fmt.Println(friends)
 	response["success"] = true
 	response["profile"] = echo.Map{
-		"full_name": profile.Full_Name,
-		"live_in":   profile.Live_In,
+		"full_name": profile.FullName,
+		"live_in":   profile.LiveIn,
 		"avatar":    profile.Avatar,
 	}
 	if friends.Status == 0 {
@@ -85,11 +84,11 @@ func (*UserController) LoadProfile(c echo.Context) error {
 	if int(account_id.(float64)) == int(friends.User_1) {
 		response["self_request"] = true
 	}
-	fmt.Println(response)
 	return c.JSON(http.StatusOK, response)
 }
 
 func (*UserController) LoadRequest(c echo.Context) error {
+	fmt.Println("load_request")
 	response := make(map[string]interface{})
 
 	account_id, _ := DecodeToken(c, "id")
@@ -106,7 +105,7 @@ func (*UserController) LoadRequest(c echo.Context) error {
 		db.Where("account_id = ?", friend.User_1).Select([]string{"account_id", "full_name", "avatar"}).Find(&currentProfile)
 		result = append(result, Result{
 			AccountID: currentProfile.AccountID,
-			Full_Name: currentProfile.Full_Name,
+			Full_Name: currentProfile.FullName,
 			Avatar:    currentProfile.Avatar,
 		})
 	}
@@ -130,17 +129,43 @@ func (*UserController) AcceptFriend(c echo.Context) error {
 }
 
 func (*UserController) GetUserOnline(c echo.Context) error {
+	fmt.Println("get_useronline")
 	request := make(map[string]interface{})
-	// response := make(map[string]interface{})
+	response := make(map[string]interface{})
 	if err := c.Bind(&request); err != nil {
 		return nil
 	}
-	// account_id, _ := DecodeToken(c, "id")
+	account_id, _ := DecodeToken(c, "id")
 	type ResultForFriends struct {
-		Current_Friend string
+		Current_Friend uint
 	}
-	var result []ResultForFriends
-	db.Raw(`SELECT CASE WHEN user_1 <> 5 THEN user_1 ELSE user_2 END as current_friend FROM "Friends" where "Friends".user_1 = 5 or "Friends".user_2 = 5`).Scan(&result)
-
-	return c.String(200, "hello")
+	var resultForFriends []ResultForFriends
+	db.Raw(`SELECT CASE WHEN user_1 <> ? THEN user_1 ELSE user_2 END as current_friend FROM "Friends" WHERE "Friends".user_1 = ? OR "Friends".user_2 = ?`, account_id, account_id, account_id).Scan(&resultForFriends)
+	arrIDForListFriend := []uint{}
+	// Ngay đây có lỗi khi chưa có bạn bè
+	if len(resultForFriends) == 0 {
+		response["list_user"] = []int{}
+		c.JSON(200, response)
+	}
+	for i := range resultForFriends {
+		arrIDForListFriend = append(arrIDForListFriend, resultForFriends[i].Current_Friend)
+	}
+	type ResultForProfile struct {
+		FullName string `json:"full_name"`
+		Avatar   string `json:"avatar"`
+		Username string `json:"username"`
+		IsOnline uint   `json:"is_online"`
+	}
+	var resultForProfile []ResultForProfile
+	db.Raw(`SELECT "Account".username,"Profile".*,
+	CASE
+		WHEN "Profile".account_id =  ANY(ARRAY(SELECT "Account_Online".account_id FROM "Account_Online"  WHERE "Account_Online".account_id != ?))
+		THEN 1
+		ELSE 0
+	END AS is_online
+	FROM "Profile"
+	LEFT JOIN "Account" ON "Account".id = "Profile".account_id
+	WHERE "Profile".account_id IN(?)`, account_id, arrIDForListFriend).Scan(&resultForProfile)
+	response["list_user"] = resultForProfile
+	return c.JSON(200, response)
 }

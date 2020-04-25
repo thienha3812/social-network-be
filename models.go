@@ -19,10 +19,10 @@ type Friends struct {
 }
 type Profile struct {
 	gorm.Model
-	Full_Name string `gorm:"type:varchar(255)"`
-	Live_In   string
+	FullName  string `gorm:"type:varchar(255)"`
+	LiveIn    string
 	Account   *Account
-	AccountID uint
+	AccountID uint `gorm:"column:account_id"`
 	Avatar    string
 }
 type Post struct {
@@ -43,9 +43,10 @@ type Comment struct {
 
 type AccountOnline struct {
 	gorm.Model
-	AccountID uint `gorm:"not null"`
+	AccountID uint `gorm:"not null;column:account_id"`
 	IP        string
-	SocketID  string `gorm:"not null"`
+	SocketID  string  `gorm:"not null"`
+	Profile   Profile `gorm:"foreignkey:account_id;association_foreignkey:account_id"`
 }
 
 func (*Account) TableName() string {
@@ -65,5 +66,5 @@ func (*Post) TableName() string {
 	return "Post"
 }
 func (*AccountOnline) TableName() string {
-	return "AccountOnline"
+	return "Account_Online"
 }

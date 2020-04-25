@@ -14,14 +14,16 @@ var userController UserController
 var db = database.init()
 
 func main() {
-
 	e := echo.New()
+	db.LogMode(true)
+	e.Debug = true
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Content-Type", "Set-Cookie"},
 	}))
 	//
+	db.AutoMigrate(Profile{})
 	e.POST("/api/account/signin", accountController.Signin)
 	e.POST("/api/user/posting", userController.Posting)
 	e.POST("/api/user/loadprofile", userController.LoadProfile)
