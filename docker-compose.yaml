@@ -5,9 +5,9 @@ services:
     container_name: postgres_container
     image: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      PGDATA: /data/postgres
+        - POSTGRES_DB=db
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres
     volumes:
        - postgres:/data/postgres
     ports:
