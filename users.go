@@ -99,7 +99,7 @@ func (*UserController) LoadRequest(c echo.Context) error {
 		Avatar    string `json:"avatar"`
 	}
 	var result []Result
-	db.Where("status = 1").Where("user_2 = ?", account_id).Find(&friends)
+	db.Where("status = 1").Where("user_2 = ?", account_id).Find(&friends) //selft user request is user_2
 	for _, friend := range friends {
 		var currentProfile Profile
 		db.Where("account_id = ?", friend.User_1).Select([]string{"account_id", "full_name", "avatar"}).Find(&currentProfile)
@@ -136,6 +136,7 @@ func (*UserController) GetUserOnline(c echo.Context) error {
 		return nil
 	}
 	account_id, _ := DecodeToken(c, "id")
+	fmt.Println("ngay đây nè ", account_id)
 	type ResultForFriends struct {
 		Current_Friend uint
 	}
@@ -167,5 +168,16 @@ func (*UserController) GetUserOnline(c echo.Context) error {
 	LEFT JOIN "Account" ON "Account".id = "Profile".account_id
 	WHERE "Profile".account_id IN(?)`, account_id, arrIDForListFriend).Scan(&resultForProfile)
 	response["list_user"] = resultForProfile
+	fmt.Println("Ngay đây nè", resultForProfile[0].FullName)
 	return c.JSON(200, response)
+}
+
+func (*UserController) Signout(c echo.Context) error {
+	fmt.Println("Logout")
+	token, _ := c.Cookie("token")
+	token.Value = ""
+	token.MaxAge = -1
+	c.SetCookie(token)
+	return c.String(200, "Logout Success")
+
 }

@@ -17,6 +17,8 @@ func main() {
 	e := echo.New()
 	db.LogMode(true)
 	e.Debug = true
+	db.AutoMigrate(Account{})
+	
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowCredentials: true,
@@ -31,6 +33,7 @@ func main() {
 	e.GET("/api/user/loadrequest", userController.LoadRequest)
 	e.POST("/api/user/acceptfriend", userController.AcceptFriend)
 	e.GET("/api/user/useronline", userController.GetUserOnline)
+	e.POST("/api/user/signout", userController.Signout)
 	e.Use(CheckToken)
 	e.Logger.Fatal(e.Start(":8080"))
 }

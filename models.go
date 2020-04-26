@@ -4,11 +4,10 @@ import "github.com/jinzhu/gorm"
 
 type Account struct {
 	gorm.Model
-	Username  string `gorm:"unique;not null"`
-	Password  string `gorm:"not null"`
-	Email     string `gorm:"not null"`
-	Is_Online int    `gorm:"default:1"`
-	Status    int    `gorm:"default:1"`
+	Username string `gorm:"unique;not null"`
+	Password string `gorm:"not null"`
+	Email    string `gorm:"not null"`
+	Status   int    `gorm:"default:1"`
 }
 
 type Friends struct {
