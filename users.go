@@ -4,6 +4,7 @@ import (
 	fmt "fmt"
 	"net/http"
 
+	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo/v4"
 )
 
@@ -31,85 +32,173 @@ func (*UserController) Posting(c echo.Context) error {
 
 func (*UserController) AddFriend(c echo.Context) error {
 	request := make(map[string]interface{})
-
-	//response := make(map[string]interface{})
 	if err := c.Bind(&request); err != nil {
 		return nil
 	}
 	account_id, _ := DecodeToken(c, "id")
-	var friends Friends
-	rows := db.Where("user_1 = ? ", account_id).Where("user_2 =  ? ", int(request["id"].(float64))).Find(&friends).RowsAffected
-	if rows == 1 {
-		db.Unscoped().Where("user_1 = ? ", account_id).Where("user_2 =  ? ", int(request["id"].(float64))).Delete(Friends{})
-	} else {
-		db.Create(&Friends{User_1: uint(int(account_id.(float64))), User_2: uint(int(request["id"].(float64)))})
+	if rows := db.Model(&Friends{}).Find("user_1 = ? AND user_2 = ?", account_id, request["user_id"]).RowsAffected; rows == 0 {
+		if err := db.Create(&Friends{User_1: uint(account_id.(float64)), User_2: uint(request["user_id"].(float64)), Status: 1}).Error; err != nil {
+			return c.NoContent(500)
+		}
 	}
-	return nil
+	return c.NoContent(200)
 }
 
 func (*UserController) LoadProfile(c echo.Context) error {
-
 	request := make(map[string]interface{})
-	response := make(map[string]interface{})
+	response := echo.Map{}
+	account_id, _ := DecodeToken(c, "id")
 	if err := c.Bind(&request); err != nil {
 		return nil
 	}
-	var profile Profile
-	var friends Friends
-	err := db.Where("account_id = ?", request["id"]).Find(&profile).Error
-	if err != nil {
-		return nil
+	if account_id == request["account_id"] || request["account_id"] == nil {
+		type Result struct {
+			CountPost int      `json:"count_post"`
+			Images    []Images `json:"images"`
+			Posts     []struct {
+				ID        uint           `json:"id"`
+				Content   string         `json:"content"`
+				Avatar    string         `json:"avatar"`
+				FullName  string         `json:"full_name"`
+				AccountID string         `json:"account_id"`
+				UserLiked postgres.Jsonb `json:"user_liked"`
+				Comments  postgres.Jsonb `json:"comments"`
+				Images    postgres.Jsonb `json:"images"`
+			} `json:"posts"`
+		}
+		var result Result
+		query := ` SELECT "Post".*,"Profile".avatar,"Profile".full_name , "Account".username,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM (
+						SELECT "Images".* FROM "Images" WHERE "Images".id = ANY("Post".image_ids)
+				) item
+		) as images,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM ( 
+						SELECT "Profile".* FROM "Profile" WHERE "Profile".account_id = ANY("Post".account_liked)) item
+		) as user_liked ,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM (SELECT "Comment".*,"Profile".* as user FROM "Comment","Profile"
+				WHERE "Comment".account_id = "Profile".account_id AND "Comment".post_id = "Post".id
+				) as item
+		) as comments
+		FROM "Post","Profile","Places","Account"
+		WHERE "Post".account_id = ? AND "Post".account_id = "Profile".account_id AND "Profile".account_id = "Account".id
+		GROUP BY "Post".id,"Profile".full_name,"Profile".avatar,"Account".id
+		ORDER BY "Post".id DESC    `
+		if err := db.Raw(query, account_id).Scan(&result.Posts).Error; err != nil {
+			panic(err)
+		}
+		query = `SELECT COUNT("Post".id) as count_post FROM "Post" WHERE "Post".account_id = ?`
+		countPOST := db.Where("account_id =?", account_id).Find(&Post{}).RowsAffected
+		db.Raw(`SELECT "Images".* FROM "Post","Images" WHERE "Post".account_id = ? AND "Images".id = ANY("Post".image_ids)`, account_id).Scan(&result.Images)
+		response["count_post"] = countPOST
+		response["posts"] = result.Posts
+		response["images"] = result.Images
+		response["is_self"] = true
+
+	} else {
+		type Result struct {
+			CountPost int      `json:"count_post"`
+			Images    []Images `json:"images"`
+			FullName  string   `json:"full_name"`
+			Avatar    string   `json:"avatar"`
+			Posts     []struct {
+				ID        uint           `json:"id"`
+				Content   string         `json:"content"`
+				Avatar    string         `json:"avatar"`
+				FullName  string         `json:"full_name"`
+				AccountID string         `json:"account_id"`
+				UserLiked postgres.Jsonb `json:"user_liked"`
+				Comments  postgres.Jsonb `json:"comments"`
+				Images    postgres.Jsonb `json:"images"`
+			} `json:"posts"`
+		}
+		var result Result
+		response["is_self"] = false
+		query := ` SELECT "Post".*,"Profile".avatar,"Profile".full_name , "Account".username,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM (
+						SELECT "Images".* FROM "Images" WHERE "Images".id = ANY("Post".image_ids)
+				) item
+		) as images,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM ( 
+						SELECT "Profile".* FROM "Profile" WHERE "Profile".account_id = ANY("Post".account_liked)) item
+		) as user_liked ,
+		(
+				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
+				FROM (SELECT "Comment".*,"Profile".* as user FROM "Comment","Profile"
+				WHERE "Comment".account_id = "Profile".account_id AND "Comment".post_id = "Post".id
+				) as item
+		) as comments
+		FROM "Post","Profile","Places","Account"
+		WHERE "Post".account_id = ? AND "Post".account_id = "Profile".account_id AND "Profile".account_id = "Account".id
+		GROUP BY "Post".id,"Profile".full_name,"Profile".avatar,"Account".id
+		ORDER BY "Post".id DESC    `
+		if err := db.Raw(query, request["account_id"]).Scan(&result.Posts).Error; err != nil {
+			panic(err)
+		}
+		response["posts"] = result.Posts
+		query = `SELECT COUNT("Post".id) as count_post FROM "Post" WHERE "Post".account_id = ?`
+		countPOST := db.Where("account_id =?", request["account_id"]).Find(&Post{}).RowsAffected
+		query = `SELECT "Profile".full_name, "Profile".avatar FROM "Profile" WHERE "Profile".account_id = ?`
+		db.Raw(query, request["account_id"]).Scan(&result)
+		db.Raw(`SELECT "Images".* FROM "Post","Images" WHERE "Post".account_id = ? AND "Images".id = ANY("Post".image_ids)`, request["account_id"]).Scan(&result.Images)
+		response["full_name"] = result.FullName
+		response["avatar"] = result.Avatar
+		response["images"] = result.Images
+		response["count_post"] = countPOST
 	}
-	account_id, err := DecodeToken(c, "id")
-	db.Where("user_1 = ? ", int(request["id"].(float64))).Where("user_2 =  ? ", account_id).Find(&friends)
-	db.Where("user_1 = ? ", account_id).Where("user_2 =  ? ", int(request["id"].(float64))).Find(&friends)
-	response["success"] = true
-	response["profile"] = echo.Map{
-		"full_name": profile.FullName,
-		"live_in":   profile.LiveIn,
-		"avatar":    profile.Avatar,
+	// Check friend
+	response["is_friend"] = false
+	response["status_friend"] = 0
+	rows := db.Or("user_1 = ? AND user_2 = ? AND status = 2", request["account_id"], account_id).Or("user_2 = ? AND user_1 = ? AND status = 2", request["account_id"], account_id).Find(&Friends{}).RowsAffected
+	if rows > 0 {
+		response["is_friend"] = true
+		response["status_friend"] = 2
 	}
-	if friends.Status == 0 {
-		response["request_status"] = "Thêm bạn bè"
-		response["request_status_code"] = 0
+	rows = db.Or("user_1 = ? AND user_2 = ? AND status = 1", request["account_id"], account_id).Or("user_2 = ? AND user_1 = ? AND status = 1", request["account_id"], account_id).Find(&Friends{}).RowsAffected
+	if rows > 0 {
+		response["is_friend"] = false
+		response["status_friend"] = 1
 	}
-	if friends.Status == 1 {
-		response["request_status"] = "Đang chờ kết bạn"
-		response["request_status_code"] = 1
-	}
-	if friends.Status == 2 {
-		response["request_status"] = "Bạn bè"
-		response["request_status_code"] = 2
-	}
-	if int(account_id.(float64)) == int(friends.User_1) {
-		response["self_request"] = true
-	}
+
 	return c.JSON(http.StatusOK, response)
 }
 
 func (*UserController) LoadRequest(c echo.Context) error {
-	fmt.Println("load_request")
-	response := make(map[string]interface{})
-
+	request := make(map[string]interface{})
+	response := echo.Map{}
 	account_id, _ := DecodeToken(c, "id")
+	if err := c.Bind(&request); err != nil {
+		return nil
+	}
 	var friends []Friends
-	type Result struct {
-		AccountID uint   `json:"id"`
-		Full_Name string `json:"full_name"`
-		Avatar    string `json:"avatar"`
+	var profiles []Profile
+	db.Or("user_1 = ? AND status = 1", account_id).Or("user_2 = ? AND status = 1", account_id).Find(&friends)
+	if len(friends) == 0 {
+		request["profiles"] = []int{}
+		return c.JSON(200, request)
 	}
-	var result []Result
-	db.Where("status = 1").Where("user_2 = ?", account_id).Find(&friends) //selft user request is user_2
 	for _, friend := range friends {
-		var currentProfile Profile
-		db.Where("account_id = ?", friend.User_1).Select([]string{"account_id", "full_name", "avatar"}).Find(&currentProfile)
-		result = append(result, Result{
-			AccountID: currentProfile.AccountID,
-			Full_Name: currentProfile.FullName,
-			Avatar:    currentProfile.Avatar,
-		})
+		var current Profile
+
+		if account_id.(float64) != float64(friend.User_1) {
+			db.Where("account_id = ?", friend.User_1).Find(&current)
+			profiles = append(profiles, current)
+		} else {
+			db.Where("account_id = ?", friend.User_2).Find(&current)
+			profiles = append(profiles, current)
+		}
+
 	}
-	response["list_request"] = result
+	response["profiles"] = profiles
 	response["sucess"] = true
 	return c.JSON(http.StatusOK, response)
 }
@@ -122,21 +211,37 @@ func (*UserController) AcceptFriend(c echo.Context) error {
 		return nil
 	}
 	account_id, _ := DecodeToken(c, "id")
-	var friends Friends
-	db.Model(&friends).Where("user_1 = ? ", int(request["id"].(float64))).Where("user_2 =  ? ", account_id).Update(Friends{Status: 2})
-	response["success"] = true
+	var friend Friends
+	if err := db.Or("user_1 = ? AND user_2 = ?", account_id, request["user_id"]).Or("user_1 = ? AND user_2 = ? ", request["user_id"], account_id).Find(&friend).Error; err != nil {
+		return c.NoContent(500)
+	}
+	db.Model(&friend).Update("status", 2)
 	return c.JSON(http.StatusOK, response)
 }
 
-func (*UserController) GetUserOnline(c echo.Context) error {
-	fmt.Println("get_useronline")
+func (*UserController) CancleAcceptFriend(c echo.Context) error {
+	fmt.Println("Here")
 	request := make(map[string]interface{})
 	response := make(map[string]interface{})
 	if err := c.Bind(&request); err != nil {
 		return nil
 	}
 	account_id, _ := DecodeToken(c, "id")
-	fmt.Println("ngay đây nè ", account_id)
+	var friend Friends
+	if err := db.Or("user_1 = ? AND user_2 = ?", account_id, request["user_id"]).Or("user_1 = ? AND user_2 = ? ", request["user_id"], account_id).Find(&friend).Error; err != nil {
+		return c.NoContent(500)
+	}
+	friend.Status = 2
+	db.Unscoped().Delete(&friend)
+	return c.JSON(http.StatusOK, response)
+}
+func (*UserController) GetUserOnline(c echo.Context) error {
+	request := make(map[string]interface{})
+	response := make(map[string]interface{})
+	if err := c.Bind(&request); err != nil {
+		return nil
+	}
+	account_id, _ := DecodeToken(c, "id")
 	type ResultForFriends struct {
 		Current_Friend uint
 	}

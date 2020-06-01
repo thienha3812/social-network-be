@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	fmt "fmt"
 
@@ -31,4 +32,11 @@ func DecodeToken(c echo.Context, key string) (interface{}, error) {
 		return t.Claims.(jwt.MapClaims)[key], nil
 	}
 	return nil, nil
+}
+func ConvertToJson(value interface{}) []byte {
+	s := fmt.Sprintf("%+v", value)
+	b, _ := json.Marshal(s)
+	jsonString := string(b)
+	fmt.Println(jsonString[1 : len(jsonString)-1])
+	return []byte(jsonString[1 : len(jsonString)-1])
 }

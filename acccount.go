@@ -23,7 +23,7 @@ func (*AccountController) Signin(c echo.Context) error {
 	if rows == 0 {
 		response["success"] = false
 		response["message"] = "Tài khoản hoặc mật khẩu không đúng"
-		return c.JSON(http.StatusOK, response)
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 	// Query profile table
 	var profile Profile
@@ -47,16 +47,15 @@ func (*AccountController) Signin(c echo.Context) error {
 		HttpOnly: true,
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
-		SameSite: http.SameSiteStrictMode,
 	})
 	// set response
 	response["success"] = true
 	response["message"] = "Đăng nhập thành công"
 	response["user_infor"] = echo.Map{
-		"avatar":    profile.Avatar,
-		"full_name": profile.FullName,
-		"username":  account.Username,
-		"id":        account.ID,
+		"avatar":     profile.Avatar,
+		"full_name":  profile.FullName,
+		"username":   account.Username,
+		"account_id": account.ID,
 	}
 	return c.JSON(http.StatusOK, response)
 }

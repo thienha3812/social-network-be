@@ -1,6 +1,9 @@
 package main
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
+)
 
 type Account struct {
 	gorm.Model
@@ -18,19 +21,20 @@ type Friends struct {
 }
 type Profile struct {
 	gorm.Model
-	FullName  string `gorm:"type:varchar(255)"`
-	LiveIn    string
-	Account   *Account
-	AccountID uint `gorm:"column:account_id"`
-	Avatar    string
+	FullName  string `gorm:"type:varchar(255)" json:"full_name"`
+	LiveIn    string `json:"live_in"`
+	AccountID uint   `gorm:"column:account_id" json:"account_id"`
+	Avatar    string `json:"avatar"`
 }
 type Post struct {
 	gorm.Model
-	Content   string `gorm:"not null"`
-	Like      uint   `gorm:"default:0"`
-	AccountID uint   `gorm:"not null"`
-	Comment   []Comment
-	Account   *Account
+	Content      string `gorm:"not null"`
+	Like         uint   `gorm:"default:0"`
+	AccountID    uint   `gorm:"not null"`
+	Comment      []Comment
+	ImageIds     pq.Int64Array `gorm:"type:int[]"`
+	Rating       float64       `gorm:"default:0"`
+	AccountLiked pq.Int64Array `gorm:"type:int[]"`
 }
 type Comment struct {
 	gorm.Model
@@ -39,7 +43,23 @@ type Comment struct {
 	PostID    uint   `gorm:"not null"`
 	AccountID uint   `gorm:"not null"`
 }
-
+type Places struct {
+	gorm.Model
+	Coordinate   string        `gorm:"type:jsonb"`
+	Images       pq.Int64Array `gorm:"type:int[]"`
+	LandingImage uint
+	Description  string
+	Name         string
+	Address      string
+	PostIds      pq.Int64Array `gorm:"type:int[]" sql:"default : '{}'"`
+	AccountLiked pq.Int64Array `gorm:"type:int[]"`
+}
+type Images struct {
+	gorm.Model
+	Src  string `json:"src"`
+	Type string `json:"type"`
+	Size uint   `json:"size"`
+}
 type AccountOnline struct {
 	gorm.Model
 	AccountID uint `gorm:"not null;column:account_id"`
@@ -66,4 +86,11 @@ func (*Post) TableName() string {
 }
 func (*AccountOnline) TableName() string {
 	return "Account_Online"
+}
+
+func (*Places) TableName() string {
+	return "Places"
+}
+func (*Images) TableName() string {
+	return "Images"
 }
