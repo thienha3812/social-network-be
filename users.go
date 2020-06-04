@@ -242,38 +242,32 @@ func (*UserController) GetUserOnline(c echo.Context) error {
 		return nil
 	}
 	account_id, _ := DecodeToken(c, "id")
-	type ResultForFriends struct {
-		Current_Friend uint
+
+	type AccountOnline struct {
+		FullName  string `json:"full_name"`
+		Avatar    string `json:"avatar"`
+		AccountID string `json:"account_id"`
+		Username  string `json:"username"`
+		IsOnline  uint   `json:"is_online"`
+		SocketID  string `json:"socket_id"`
 	}
-	var resultForFriends []ResultForFriends
-	db.Raw(`SELECT CASE WHEN user_1 <> ? THEN user_1 ELSE user_2 END as current_friend FROM "Friends" WHERE "Friends".user_1 = ? OR "Friends".user_2 = ?`, account_id, account_id, account_id).Scan(&resultForFriends)
-	arrIDForListFriend := []uint{}
-	// Ngay đây có lỗi khi chưa có bạn bè
-	if len(resultForFriends) == 0 {
-		response["list_user"] = []int{}
-		c.JSON(200, response)
-	}
-	for i := range resultForFriends {
-		arrIDForListFriend = append(arrIDForListFriend, resultForFriends[i].Current_Friend)
-	}
-	type ResultForProfile struct {
-		FullName string `json:"full_name"`
-		Avatar   string `json:"avatar"`
-		Username string `json:"username"`
-		IsOnline uint   `json:"is_online"`
-	}
-	var resultForProfile []ResultForProfile
+	var resultForProfile []AccountOnline
 	db.Raw(`SELECT "Account".username,"Profile".*,
 	CASE
 		WHEN "Profile".account_id =  ANY(ARRAY(SELECT "Account_Online".account_id FROM "Account_Online"  WHERE "Account_Online".account_id != ?))
 		THEN 1
 		ELSE 0
-	END AS is_online
-	FROM "Profile"
-	LEFT JOIN "Account" ON "Account".id = "Profile".account_id
-	WHERE "Profile".account_id IN(?)`, account_id, arrIDForListFriend).Scan(&resultForProfile)
+	END AS is_online,
+	CASE
+		WHEN "Profile".account_id::TEXT = ANY(ARRAY(SELECT "Account_Online".account_id::TEXT FROM "Account_Online")) 
+		THEN ((SELECT "Account_Online".socket_id FROM "Account_Online" WHERE "Account_Online".account_id = "Profile".account_id))
+		ELSE ''
+	END as socket_id
+	FROM "Profile","Account"
+	WHERE "Account".id = "Profile".account_id AND "Profile".account_id = ANY(ARRAY(SELECT CASE WHEN "Friends".user_1 <> ? THEN "Friends".user_1 ELSE "Friends".user_2 END as current_friend FROM "Friends"
+	WHERE "Friends".user_1 = ? OR "Friends".user_2 =? AND "Friends".status = 2)) 
+	GROUP BY "Profile".id,"Account".id`, account_id, account_id, account_id, account_id).Scan(&resultForProfile)
 	response["list_user"] = resultForProfile
-	fmt.Println("Ngay đây nè", resultForProfile[0].FullName)
 	return c.JSON(200, response)
 }
 

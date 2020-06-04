@@ -26,6 +26,18 @@ type Profile struct {
 	AccountID uint   `gorm:"column:account_id" json:"account_id"`
 	Avatar    string `json:"avatar"`
 }
+type Message struct {
+	gorm.Model
+	AccountID      uint `gorm:"not null"`
+	ConversationID uint `gorm:"not null"`
+	Status         uint `gorm:"default 1"`
+	Content        string
+}
+type Conversation struct {
+	gorm.Model
+	User_1 uint `gorm:"not null"`
+	User_2 uint `gorm:"not null"`
+}
 type Post struct {
 	gorm.Model
 	Content      string `gorm:"not null"`
@@ -78,6 +90,9 @@ func (*Friends) TableName() string {
 func (*Profile) TableName() string {
 	return "Profile"
 }
+func (*Message) TableName() string {
+	return "Message"
+}
 func (*Comment) TableName() string {
 	return "Comment"
 }
@@ -93,4 +108,8 @@ func (*Places) TableName() string {
 }
 func (*Images) TableName() string {
 	return "Images"
+}
+
+func (*Conversation) TableName() string {
+	return "Conversation"
 }

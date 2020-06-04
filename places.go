@@ -196,8 +196,10 @@ func (*PlacesController) UserReview(c echo.Context) error {
 	}
 	err = db.Create(&post).Error
 	if err != nil {
-		return c.NoContent(500)
+		panic(err)
 	}
-	db.Table("Places").Where("id = ? ", c.FormValue("post_id")).Update("post_ids", gorm.Expr("array_append(post_ids,?)", post.ID)).Update("images", gorm.Expr("array_append(images,?)", image.ID))
+	if err := db.Table("Places").Where("id = ? ", c.FormValue("post_id")).Update("post_ids", gorm.Expr("array_append(post_ids,?)", post.ID)).Update("images", gorm.Expr("array_append(images,?)", image.ID)).Error; err != nil {
+		panic(err)
+	}
 	return c.NoContent(200)
 }

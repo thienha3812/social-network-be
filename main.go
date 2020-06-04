@@ -30,6 +30,8 @@ func main() {
 	//
 	db.AutoMigrate(Profile{})
 	db.AutoMigrate(Post{})
+	db.AutoMigrate(Message{})
+	db.AutoMigrate(Conversation{})
 	e.POST("/api/account/signin", accountController.Signin)
 	e.POST("/api/user/posting", userController.Posting)
 	e.POST("/api/user/load-profile", userController.LoadProfile)
@@ -37,7 +39,7 @@ func main() {
 	e.GET("/api/user/load-request", userController.LoadRequest)
 	e.POST("/api/user/accept-friend", userController.AcceptFriend)
 	e.POST("/api/user/cancle-request", userController.CancleAcceptFriend)
-	e.GET("/api/user/useronline", userController.GetUserOnline)
+	e.GET("/api/user/user-online", userController.GetUserOnline)
 	e.POST("/api/user/signout", userController.Signout)
 	//
 	e.POST("/api/places/list-places", placesController.ListPlaces)
