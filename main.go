@@ -66,5 +66,6 @@ func main() {
 	//
 	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
 	e.Use(CheckToken)
-	e.Logger.Fatal(e.Start("0.0.0.0:80"))
+	port := os.Getenv("PORT")
+	e.Logger.Fatal(e.Start("0.0.0.0:" + port))
 }
