@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -21,24 +23,26 @@ func main() {
 	e := echo.New()
 	e.Static("/public", "./assets/")
 	db.LogMode(true)
+	///
+	os.Mkdir("./assets", os.ModePerm)
+	///
 	e.Debug = true
-	db.AutoMigrate(Places{})
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Content-Type", "Set-Cookie"},
 	}))
 	//
-	db.AutoMigrate(Account{})
-	db.AutoMigrate(Friends{})
-	db.AutoMigrate(Profile{})
-	db.AutoMigrate(Post{})
-	db.AutoMigrate(Message{})
-	db.AutoMigrate(Conversation{})
-	db.AutoMigrate(AccountOnline{})
-	db.AutoMigrate(Images{})
-	db.AutoMigrate(Comment{})
-	db.AutoMigrate(Places{})
+	// db.AutoMigrate(Account{})
+	// db.AutoMigrate(Friends{})
+	// db.AutoMigrate(Profile{})
+	// db.AutoMigrate(Post{})
+	// db.AutoMigrate(Message{})
+	// db.AutoMigrate(Conversation{})
+	// db.AutoMigrate(AccountOnline{})
+	// db.AutoMigrate(Images{})
+	// db.AutoMigrate(Comment{})
+	// db.AutoMigrate(Places{})
 	//
 	e.POST("/api/account/signin", accountController.Signin)
 	e.POST("/api/user/posting", userController.Posting)
