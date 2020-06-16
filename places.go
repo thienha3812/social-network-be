@@ -18,6 +18,14 @@ import (
 
 type PlacesController struct{}
 
+type CustomPlaces struct {
+	ID              uint    `json:"id"`
+	Name            string  `json:"name"`
+	LandingImageSrc string  `json:"landing_image_src"`
+	Description     string  `json:"description"`
+	Rating          float64 `json:"rating"`
+}
+
 func (*PlacesController) ListPlaces(c echo.Context) error {
 	request := echo.Map{}
 	response := echo.Map{}
@@ -44,28 +52,13 @@ func (*PlacesController) ListPlaces(c echo.Context) error {
 func (*PlacesController) GetPlaceByID(c echo.Context) error {
 	request := echo.Map{}
 	response := echo.Map{}
-	if err := c.Bind(&request); err != nil {
-		return c.NoContent(200)
-	}
-	query := `
-	SELECT "Places".id,
-	"Places".description,
-	(SELECT COALESCE(json_agg(item),'[]'::json) FROM (SELECT * FROM "Images" WHERE "Images".id = ANY("Places".images)) item ) as "images",
-	"Places".name,	
-	(SELECT json_agg(item) FROM (SELECT * FROM "Images" WHERE "Images".id = "Places".landing_image) item ) as "background_image",
-	(SELECT avg("Post".rating) FROM "Post" Where "Post".id = ANY("Places".post_ids)) as rating
-	FROM "Places",
-	"Images"
-	WHERE "Places".id = ?
-	GROUP BY "Places".id
-	`
-
 	type Result struct {
 		ID              string         `json:"id"`
 		Description     string         `json:"description"`
 		Rating          float64        `json:"rating"`
 		Images          postgres.Jsonb `json:"images"`
 		Name            string         `json:"name"`
+		Coordinate      postgres.Jsonb `json:"coordinate"`
 		BackgroundImage postgres.Jsonb `json:"background_image,omitempty"`
 		Posts           []struct {
 			ID        uint           `json:"id"`
@@ -79,6 +72,21 @@ func (*PlacesController) GetPlaceByID(c echo.Context) error {
 		} `json:"posts"`
 	}
 	var result Result
+	if err := c.Bind(&request); err != nil {
+		return c.NoContent(200)
+	}
+	query := `
+		SELECT "Places".coordinate,"Places".id,
+		"Places".description,
+		(SELECT COALESCE(json_agg(item),'[]'::json) FROM (SELECT * FROM "Images" WHERE "Images".id = ANY("Places".images)) item ) as "images",
+		"Places".name,	
+		(SELECT json_agg(item) FROM (SELECT * FROM "Images" WHERE "Images".id = "Places".landing_image) item ) as "background_image",
+		(SELECT avg("Post".rating) FROM "Post" Where "Post".id = ANY("Places".post_ids)) as rating
+		FROM "Places",
+		"Images"
+		WHERE "Places".id = ?
+		GROUP BY "Places".id
+	`
 	db.Raw(query, request["id"]).Scan(&result)
 	query = `
 	SELECT "Post".*,"Profile".avatar,"Profile".full_name ,
@@ -202,4 +210,60 @@ func (*PlacesController) UserReview(c echo.Context) error {
 		panic(err)
 	}
 	return c.NoContent(200)
+}
+
+func (*PlacesController) GetPlacesForIndexPage(c echo.Context) error {
+	response := echo.Map{}
+	var hotPlaces []CustomPlaces
+	var randomPlaces []CustomPlaces
+	// var regularlyPlaces []CustomPlaces
+	query := `
+	SELECT DISTINCT
+	"Places".id,
+	"Places".description,
+	"Places"."name",
+	(	
+		SELECT "Images".src FROM "Images" WHERE "Images".id  = "Places".landing_image
+	) as landing_image_src,
+	(
+		SELECT
+			COALESCE(null,AVG("Post".rating),0)
+		FROM
+			"Post"
+		WHERE
+			"Post".id = ANY ("Places".post_ids)) as rating
+	FROM
+		"Places"
+	GROUP BY
+		"Places".id
+	ORDER BY rating DESC
+	LIMIT 3
+	`
+	db.Raw(query).Scan(&hotPlaces)
+	response["hot_places"] = hotPlaces
+	//
+	query = ` 
+		SELECT 
+		"Places".id,
+		"Places".description,
+		"Places"."name",
+		(	
+			SELECT "Images".src FROM "Images" WHERE "Images".id  = "Places".landing_image
+		) as landing_image_src,
+		(
+			SELECT
+				COALESCE(null,AVG("Post".rating),0)
+			FROM
+				"Post"
+			WHERE
+				"Post".id = ANY ("Places".post_ids)) as rating
+		FROM
+			"Places"		
+		GROUP BY "Places".id	
+		ORDER BY RANDOM()
+		LIMIT 3
+	`
+	db.Raw(query).Scan(&randomPlaces)
+	response["random_places"] = randomPlaces
+	return c.JSON(200, response)
 }

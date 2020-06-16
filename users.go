@@ -247,7 +247,6 @@ func (*UserController) GetUserOnline(c echo.Context) error {
 		FullName  string `json:"full_name"`
 		Avatar    string `json:"avatar"`
 		AccountID string `json:"account_id"`
-		Username  string `json:"username"`
 		IsOnline  uint   `json:"is_online"`
 		SocketID  string `json:"socket_id"`
 	}
@@ -265,7 +264,7 @@ func (*UserController) GetUserOnline(c echo.Context) error {
 	END as socket_id
 	FROM "Profile","Account"
 	WHERE "Account".id = "Profile".account_id AND "Profile".account_id = ANY(ARRAY(SELECT CASE WHEN "Friends".user_1 <> ? THEN "Friends".user_1 ELSE "Friends".user_2 END as current_friend FROM "Friends"
-	WHERE "Friends".user_1 = ? OR "Friends".user_2 =? AND "Friends".status = 2)) 
+	WHERE ("Friends".user_1 = ? OR "Friends".user_2 =?) AND "Friends".status = 2)) 
 	GROUP BY "Profile".id,"Account".id`, account_id, account_id, account_id, account_id).Scan(&resultForProfile)
 	response["list_user"] = resultForProfile
 	return c.JSON(200, response)

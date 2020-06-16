@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	fmt "fmt"
+	"math/rand"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
@@ -39,4 +40,10 @@ func ConvertToJson(value interface{}) []byte {
 	jsonString := string(b)
 	fmt.Println(jsonString[1 : len(jsonString)-1])
 	return []byte(jsonString[1 : len(jsonString)-1])
+}
+
+func PickRandom(list []CustomPlaces) (CustomPlaces, []CustomPlaces) {
+	random := rand.Intn(len(list))
+	restList := append(list[:random], list[random+1:]...)
+	return list[random], restList
 }

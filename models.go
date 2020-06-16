@@ -28,10 +28,10 @@ type Profile struct {
 }
 type Message struct {
 	gorm.Model
-	AccountID      uint `gorm:"not null"`
-	ConversationID uint `gorm:"not null"`
-	Status         uint `gorm:"default 1"`
-	Content        string
+	AccountID      uint   `gorm:"not null" json:"account_id"`
+	ConversationID uint   `gorm:"not null" json:"conversation_id"`
+	Status         uint   `gorm:"default 1" json:"status"`
+	Content        string `json:"content"`
 }
 type Conversation struct {
 	gorm.Model

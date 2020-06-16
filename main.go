@@ -11,6 +11,7 @@ var accountController AccountController
 var userController UserController
 var placesController PlacesController
 var postController PostController
+var messageController MessageController
 
 // init all necessary
 var db = database.init()
@@ -28,10 +29,17 @@ func main() {
 		AllowHeaders:     []string{"Content-Type", "Set-Cookie"},
 	}))
 	//
+	db.AutoMigrate(Account{})
+	db.AutoMigrate(Friends{})
 	db.AutoMigrate(Profile{})
 	db.AutoMigrate(Post{})
 	db.AutoMigrate(Message{})
 	db.AutoMigrate(Conversation{})
+	db.AutoMigrate(AccountOnline{})
+	db.AutoMigrate(Images{})
+	db.AutoMigrate(Comment{})
+	db.AutoMigrate(Places{})
+	//
 	e.POST("/api/account/signin", accountController.Signin)
 	e.POST("/api/user/posting", userController.Posting)
 	e.POST("/api/user/load-profile", userController.LoadProfile)
@@ -41,15 +49,18 @@ func main() {
 	e.POST("/api/user/cancle-request", userController.CancleAcceptFriend)
 	e.GET("/api/user/user-online", userController.GetUserOnline)
 	e.POST("/api/user/signout", userController.Signout)
-	//
+	//Places controller
 	e.POST("/api/places/list-places", placesController.ListPlaces)
 	e.POST("/api/places/place-by-id", placesController.GetPlaceByID)
 	e.POST("/api/places/user-review", placesController.UserReview)
 	e.POST("/api/places/add-place", placesController.AddPlace)
+	e.GET("/api/places/get-place-for-index-page", placesController.GetPlacesForIndexPage)
 	//
 	e.POST("/api/post/user-like", postController.LikePost)
 	e.POST("/api/post/user-comment", postController.UserComment)
 
+	//
+	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
 	e.Use(CheckToken)
 	e.Logger.Fatal(e.Start(":8080"))
 }
