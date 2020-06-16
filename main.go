@@ -67,8 +67,8 @@ func main() {
 	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
 	e.Use(CheckToken)
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	// if port == "" {
+	// 	port = "8080"
+	// }
 	e.Logger.Fatal(e.Start("0.0.0.0:" + port))
 }
