@@ -17,7 +17,7 @@ var messageController MessageController
 
 // init all necessary
 var db = database.init()
-var localServer = "http://localhost:8080"
+var localServer = "https://whispering-garden-39722.herokuapp.com"
 
 func main() {
 	e := echo.New()
