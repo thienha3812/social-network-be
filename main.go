@@ -66,5 +66,5 @@ func main() {
 	//
 	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
 	e.Use(CheckToken)
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":80"))
 }
