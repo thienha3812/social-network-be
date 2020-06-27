@@ -17,7 +17,7 @@ var messageController MessageController
 
 // init all necessary
 var db = database.init()
-var localServer = "https://whispering-garden-39722.herokuapp.com"
+var localServer = "http://localhost:8080"
 
 func main() {
 	e := echo.New()
@@ -52,7 +52,7 @@ func main() {
 	e.POST("/api/user/accept-friend", userController.AcceptFriend)
 	e.POST("/api/user/cancle-request", userController.CancleAcceptFriend)
 	e.GET("/api/user/user-online", userController.GetUserOnline)
-	e.POST("/api/user/signout", userController.Signout)
+	e.POST("/api/account/signout", userController.Signout)
 	//Places controller
 	e.POST("/api/places/list-places", placesController.ListPlaces)
 	e.POST("/api/places/place-by-id", placesController.GetPlaceByID)
@@ -67,8 +67,8 @@ func main() {
 	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
 	e.Use(CheckToken)
 	port := os.Getenv("PORT")
-	// if port == "" {
-	// 	port = "8080"
-	// }
-	e.Logger.Fatal(e.Start("0.0.0.0:" + port))
+	if port == "" {
+		port = "8080"
+	}
+	e.Logger.Fatal(e.Start(":" + port))
 }

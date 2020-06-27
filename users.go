@@ -117,8 +117,7 @@ func (*UserController) LoadProfile(c echo.Context) error {
 				Images    postgres.Jsonb `json:"images"`
 			} `json:"posts"`
 		}
-		var result Result
-		response["is_self"] = false
+		var result Result		
 		query := ` SELECT "Post".*,"Profile".avatar,"Profile".full_name , "Account".username,
 		(
 				SELECT COALESCE(json_agg(DISTINCT item),'[]'::json)
@@ -154,6 +153,7 @@ func (*UserController) LoadProfile(c echo.Context) error {
 		response["avatar"] = result.Avatar
 		response["images"] = result.Images
 		response["count_post"] = countPOST
+		response["is_self"] = false
 	}
 	// Check friend
 	response["is_friend"] = false
@@ -181,7 +181,7 @@ func (*UserController) LoadRequest(c echo.Context) error {
 	}
 	var friends []Friends
 	var profiles []Profile
-	db.Or("user_1 = ? AND status = 1", account_id).Or("user_2 = ? AND status = 1", account_id).Find(&friends)
+	db.Where("user_2 = ? AND status = 1", account_id).Find(&friends)
 	if len(friends) == 0 {
 		request["profiles"] = []int{}
 		return c.JSON(200, request)
