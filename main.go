@@ -59,13 +59,14 @@ func main() {
 	e.POST("/api/places/user-review", placesController.UserReview)
 	e.POST("/api/places/add-place", placesController.AddPlace)
 	e.GET("/api/places/get-place-for-index-page", placesController.GetPlacesForIndexPage)
+	e.POST("/api/find-restaurant", placesController.FindRestaurant)
 	//
 	e.POST("/api/post/user-like", postController.LikePost)
 	e.POST("/api/post/user-comment", postController.UserComment)
 
 	//
 	e.POST("/api/message/get-history", messageController.GetHistoryMessage)
-	e.Use(CheckToken)
+	// e.Use(CheckToken)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

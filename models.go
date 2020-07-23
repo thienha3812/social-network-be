@@ -80,6 +80,15 @@ type AccountOnline struct {
 	Profile   Profile `gorm:"foreignkey:account_id;association_foreignkey:account_id"`
 }
 
+type Reviews struct {
+	gorm.Model
+	AccountID uint          `gorm:"not null"`
+	Rating    float64       `gorm:"default:0"`
+	PlaceID   uint          `gorm:"not null"`
+	Conent    string        `gorm:"not null"`
+	ImagesID  pq.Int64Array `gorm:"type:int[]" sql:"default:'{}'"`
+}
+
 func (*Account) TableName() string {
 	return "Account"
 }

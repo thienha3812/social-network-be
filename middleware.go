@@ -1,8 +1,6 @@
 package main
 
 import (
-	fmt "fmt"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 )
@@ -12,14 +10,13 @@ func CheckToken(next echo.HandlerFunc) echo.HandlerFunc {
 		if c.Path() != "/api/account/signin" {
 			token, err := c.Cookie("token")
 			if err != nil {
-				fmt.Println("Lỗi ngay đây token ")
-				return c.String(500, "Token not exist")
+				return c.String(400, "")
 			}
 			t, _ := jwt.Parse(token.Value, func(token *jwt.Token) (i interface{}, err error) {
 				return []byte("secret"), nil
 			})
 			if !t.Valid {
-				return c.String(500, "Token invalid")
+				return c.String(401, "")
 			}
 		}
 		return next(c)

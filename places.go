@@ -267,3 +267,21 @@ func (*PlacesController) GetPlacesForIndexPage(c echo.Context) error {
 	response["random_places"] = randomPlaces
 	return c.JSON(200, response)
 }
+
+////
+func (*PlacesController) FindRestaurant(c echo.Context) error {
+	request := make(map[string]interface{})
+	if err := c.Bind(&request); err != nil {
+		return c.NoContent(500)
+	}
+	lat := request["lat"]
+	lng := request["lng"]
+	url := fmt.Sprintf("https://tripadvisor1.p.rapidapi.com/restaurants/list-by-latlng?limit=30&currency=USD&distance=10&lunit=km&lang=vi_VN&latitude=%f&longitude=%f", lat, lng)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("x-rapidapi-host", "tripadvisor1.p.rapidapi.com")
+	req.Header.Add("x-rapidapi-key", "f93e17dc2emsh5d6001a1203bfe7p1c9d21jsnd5e65b818b81")
+	res, _ := http.DefaultClient.Do(req)
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	return c.JSONBlob(200, body)
+}
